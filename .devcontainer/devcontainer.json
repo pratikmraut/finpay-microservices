@@ -1,0 +1,53 @@
+{
+  "name": "FinPay Microservices",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "17",
+      "installMaven": true
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "version": "latest",
+      "enableNonRootDocker": true
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "vmware.vscode-spring-boot",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+  "forwardPorts": [
+    8080,
+    8081,
+    8082,
+    8083,
+    8084,
+    5432,
+    6379,
+    9092
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "api-gateway",
+      "onAutoForward": "notify"
+    },
+    "8081": {
+      "label": "auth-service"
+    },
+    "8082": {
+      "label": "wallet-service"
+    },
+    "8083": {
+      "label": "payment-service"
+    },
+    "8084": {
+      "label": "notification-service"
+    }
+  },
+  "postCreateCommand": "java -version && mvn -version && docker --version && docker compose version"
+}

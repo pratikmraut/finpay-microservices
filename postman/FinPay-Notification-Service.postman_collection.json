@@ -1,0 +1,340 @@
+{
+  "info": {
+    "name": "FinPay Notification Service",
+    "description": "Postman collection for testing FinPay notification-service Phase 5 APIs without Kafka. Start auth-service on 8081 and notification-service on 8084 before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "authBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "notificationBaseUrl",
+      "value": "http://localhost:8084"
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": "Pass@123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    },
+    {
+      "key": "paymentReference",
+      "value": ""
+    },
+    {
+      "key": "internalServiceToken",
+      "value": "local-internal-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{authBaseUrl}}/actuator/health",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Auth health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{notificationBaseUrl}}/actuator/health",
+          "host": [
+            "{{notificationBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Notification health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const unique = Date.now();",
+              "pm.collectionVariables.set('userEmail', 'notifyuser' + unique + '@example.com');",
+              "pm.collectionVariables.set('eventId', 'event-' + unique);",
+              "pm.collectionVariables.set('paymentReference', 'PAY-' + unique);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Register returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Notification Test User\",\n  \"email\": \"{{userEmail}}\",\n  \"phone\": \"9999999999\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Login stores JWT token', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Simulate Payment Completed Event",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-INTERNAL-SERVICE-TOKEN",
+            "value": "{{internalServiceToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"paymentReference\": \"{{paymentReference}}\",\n  \"senderWalletId\": 1,\n  \"receiverWalletId\": 2,\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"status\": \"SUCCESS\",\n  \"eventType\": \"PAYMENT_COMPLETED\",\n  \"message\": \"Payment completed successfully\",\n  \"createdAt\": \"2026-06-21T00:00:00Z\"\n}"
+        },
+        "url": {
+          "raw": "{{notificationBaseUrl}}/internal/v1/notifications/payment-events",
+          "host": [
+            "{{notificationBaseUrl}}"
+          ],
+          "path": [
+            "internal",
+            "v1",
+            "notifications",
+            "payment-events"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Simulated event returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Notification is created', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "  pm.expect(json.data.status).to.eql('CREATED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get All Notifications",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationBaseUrl}}/api/v1/notifications",
+          "host": [
+            "{{notificationBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get all notifications returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Notification list contains data', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.length).to.be.greaterThan(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Notifications By Payment Reference",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{notificationBaseUrl}}/api/v1/notifications/payment/{{paymentReference}}",
+          "host": [
+            "{{notificationBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "payment",
+            "{{paymentReference}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get by payment reference returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Payment notification is returned', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data[0].paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

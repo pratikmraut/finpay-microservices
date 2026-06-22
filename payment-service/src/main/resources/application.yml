@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:h2:mem:finpay_payment_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+finpay:
+  jwt:
+    secret: change-this-secret-to-a-long-strong-value-for-local-dev-only
+  internal-service-token: local-internal-token
+  wallet-service:
+    base-url: http://localhost:8082

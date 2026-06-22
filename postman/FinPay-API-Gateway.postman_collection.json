@@ -1,0 +1,638 @@
+{
+  "info": {
+    "_postman_id": "b186f2e5-8230-4f6d-b8d9-f4f460407c7d",
+    "name": "FinPay API Gateway",
+    "description": "End-to-end FinPay tests through the API Gateway on port 8080.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "gatewayBaseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "password",
+      "value": "Pass@123"
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "userPhone",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "senderWalletId",
+      "value": ""
+    },
+    {
+      "key": "receiverWalletId",
+      "value": ""
+    },
+    {
+      "key": "paymentReference",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKey",
+      "value": ""
+    },
+    {
+      "key": "eventId",
+      "value": ""
+    },
+    {
+      "key": "internalServiceToken",
+      "value": "local-internal-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "Gateway Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/actuator/health",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Gateway health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register User Through Gateway",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const unique = Date.now();",
+              "pm.collectionVariables.set('userEmail', 'gateway' + unique + '@example.com');",
+              "pm.collectionVariables.set('userPhone', '98' + String(unique).slice(-8));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Register through gateway returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Register response contains user email', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.email).to.eql(pm.collectionVariables.get('userEmail'));",
+              "  pm.collectionVariables.set('userId', json.data.userId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Gateway User\",\n  \"email\": \"{{userEmail}}\",\n  \"phone\": \"{{userPhone}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login User Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Login stores JWT token and user id', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "  pm.collectionVariables.set('userId', json.data.userId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Current User Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Current user through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Current user email matches registered user', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.email).to.eql(pm.collectionVariables.get('userEmail'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/auth/me",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "me"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Sender Wallet Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create sender wallet through gateway returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Sender wallet id is stored', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.walletId).to.exist;",
+              "  pm.collectionVariables.set('senderWalletId', json.data.walletId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{userId}},\n  \"initialBalance\": 2000.00,\n  \"currency\": \"INR\"\n}"
+        },
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/wallets",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Receiver Wallet Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create receiver wallet through gateway returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Receiver wallet id is stored', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.walletId).to.exist;",
+              "  pm.collectionVariables.set('receiverWalletId', json.data.walletId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{userId}},\n  \"initialBalance\": 1000.00,\n  \"currency\": \"INR\"\n}"
+        },
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/wallets",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Transfer Money Through Gateway",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('idempotencyKey', 'gateway-transfer-' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Transfer through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Transfer stores payment reference', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.status).to.eql('SUCCESS');",
+              "  pm.expect(json.data.paymentReference).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('paymentReference', json.data.paymentReference);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"senderWalletId\": {{senderWalletId}},\n  \"receiverWalletId\": {{receiverWalletId}},\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+        },
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/payments/transfer",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "transfer"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Payment Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get payment through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Payment reference matches transfer', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/payments/{{paymentReference}}",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "{{paymentReference}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Sender Transactions Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get transactions through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Transactions include payment reference', function () {",
+              "  const json = pm.response.json();",
+              "  const refs = json.data.map(item => item.paymentReference);",
+              "  pm.expect(refs).to.include(pm.collectionVariables.get('paymentReference'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/wallets/{{senderWalletId}}/transactions",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{senderWalletId}}",
+            "transactions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Sender Balance Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sender balance through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Sender balance is 1500 after transfer', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.balance).to.eql(1500.00);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/wallets/{{senderWalletId}}/balance",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{senderWalletId}}",
+            "balance"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Simulate Notification Event Through Gateway",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('eventId', 'gateway-event-' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Notification event through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Notification is created', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "  pm.expect(json.data.status).to.eql('CREATED');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-INTERNAL-SERVICE-TOKEN",
+            "value": "{{internalServiceToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"paymentReference\": \"{{paymentReference}}\",\n  \"senderWalletId\": {{senderWalletId}},\n  \"receiverWalletId\": {{receiverWalletId}},\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"status\": \"SUCCESS\",\n  \"eventType\": \"PAYMENT_COMPLETED\",\n  \"message\": \"Payment completed successfully\",\n  \"createdAt\": \"2026-06-22T00:00:00Z\"\n}"
+        },
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/internal/v1/notifications/payment-events",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "internal",
+            "v1",
+            "notifications",
+            "payment-events"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Notification By Payment Through Gateway",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get notification through gateway returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Notification list contains payment reference', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.length).to.be.above(0);",
+              "  pm.expect(json.data[0].paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{gatewayBaseUrl}}/api/v1/notifications/payment/{{paymentReference}}",
+          "host": [
+            "{{gatewayBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "notifications",
+            "payment",
+            "{{paymentReference}}"
+          ]
+        }
+      }
+    }
+  ]
+}

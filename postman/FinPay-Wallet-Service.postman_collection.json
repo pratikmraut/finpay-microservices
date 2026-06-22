@@ -1,0 +1,598 @@
+{
+  "info": {
+    "name": "FinPay Wallet Service",
+    "description": "Postman collection for testing FinPay wallet-service Phase 3 APIs. Start auth-service on 8081 and wallet-service on 8082 before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "authBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "walletBaseUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": "Pass@123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "walletId",
+      "value": ""
+    },
+    {
+      "key": "internalServiceToken",
+      "value": "local-internal-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{authBaseUrl}}/actuator/health",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Auth health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{walletBaseUrl}}/actuator/health",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Wallet health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const email = 'walletuser' + Date.now() + '@example.com';",
+              "pm.collectionVariables.set('userEmail', email);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Register returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Register response contains user email', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.email).to.eql(pm.collectionVariables.get('userEmail'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Wallet Test User\",\n  \"email\": \"{{userEmail}}\",\n  \"phone\": \"9999999999\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Login returns JWT token', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Wallet",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create wallet returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Create wallet stores walletId', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.walletId).to.exist;",
+              "  pm.expect(json.data.status).to.eql('ACTIVE');",
+              "  pm.collectionVariables.set('walletId', json.data.walletId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1,\n  \"initialBalance\": 5000.00,\n  \"currency\": \"INR\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Wallet",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets/{{walletId}}",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{walletId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get wallet returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Get wallet returns ACTIVE wallet', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.walletId).to.eql(Number(pm.collectionVariables.get('walletId')));",
+              "  pm.expect(json.data.status).to.eql('ACTIVE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get Wallet Balance",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets/{{walletId}}/balance",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{walletId}}",
+            "balance"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get balance returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Initial balance is 5000', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.balance).to.eql(5000.00);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Debit Wallet",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-INTERNAL-SERVICE-TOKEN",
+            "value": "{{internalServiceToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"reference\": \"TEST-DEBIT-001\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/internal/v1/wallets/{{walletId}}/debit",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "internal",
+            "v1",
+            "wallets",
+            "{{walletId}}",
+            "debit"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Debit returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Balance after debit is 4500', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.balance).to.eql(4500.00);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Credit Wallet",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-INTERNAL-SERVICE-TOKEN",
+            "value": "{{internalServiceToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 250.00,\n  \"currency\": \"INR\",\n  \"reference\": \"TEST-CREDIT-001\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/internal/v1/wallets/{{walletId}}/credit",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "internal",
+            "v1",
+            "wallets",
+            "{{walletId}}",
+            "credit"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Credit returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Balance after credit is 4750', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.balance).to.eql(4750.00);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Set Wallet Inactive",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"INACTIVE\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets/{{walletId}}/status",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{walletId}}",
+            "status"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Set inactive returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Wallet status is INACTIVE', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.status).to.eql('INACTIVE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Debit Inactive Wallet Should Fail",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "X-INTERNAL-SERVICE-TOKEN",
+            "value": "{{internalServiceToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"amount\": 100.00,\n  \"currency\": \"INR\",\n  \"reference\": \"TEST-DEBIT-INACTIVE\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/internal/v1/wallets/{{walletId}}/debit",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "internal",
+            "v1",
+            "wallets",
+            "{{walletId}}",
+            "debit"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Inactive wallet debit returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Inactive wallet debit returns WALLET_INACTIVE', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.errorCode).to.eql('WALLET_INACTIVE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Set Wallet Active",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"ACTIVE\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets/{{walletId}}/status",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{walletId}}",
+            "status"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Set active returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Wallet status is ACTIVE', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.status).to.eql('ACTIVE');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

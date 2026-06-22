@@ -1,0 +1,685 @@
+{
+  "info": {
+    "name": "FinPay Payment Service",
+    "description": "Postman collection for testing FinPay payment-service Phase 4 APIs. Start auth-service on 8081, wallet-service on 8082, and payment-service on 8083 before running.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "authBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "walletBaseUrl",
+      "value": "http://localhost:8082"
+    },
+    {
+      "key": "paymentBaseUrl",
+      "value": "http://localhost:8083"
+    },
+    {
+      "key": "userEmail",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": "Pass@123"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "senderWalletId",
+      "value": ""
+    },
+    {
+      "key": "receiverWalletId",
+      "value": ""
+    },
+    {
+      "key": "paymentReference",
+      "value": ""
+    },
+    {
+      "key": "idempotencyKey",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{authBaseUrl}}/actuator/health",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Auth health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wallet Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{walletBaseUrl}}/actuator/health",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Wallet health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{paymentBaseUrl}}/actuator/health",
+          "host": [
+            "{{paymentBaseUrl}}"
+          ],
+          "path": [
+            "actuator",
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Payment health returns 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Register User",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const unique = Date.now();",
+              "pm.collectionVariables.set('userEmail', 'paymentuser' + unique + '@example.com');",
+              "pm.collectionVariables.set('idempotencyKey', 'idem-' + unique);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Register returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Register response contains user email', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.email).to.eql(pm.collectionVariables.get('userEmail'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fullName\": \"Payment Test User\",\n  \"email\": \"{{userEmail}}\",\n  \"phone\": \"9999999999\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/api/v1/auth/register",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Login stores JWT token', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.accessToken).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{authBaseUrl}}/api/v1/auth/login",
+          "host": [
+            "{{authBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Sender Wallet",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create sender wallet returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Sender wallet id is stored', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.walletId).to.exist;",
+              "  pm.collectionVariables.set('senderWalletId', json.data.walletId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1,\n  \"initialBalance\": 5000.00,\n  \"currency\": \"INR\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Receiver Wallet",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create receiver wallet returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Receiver wallet id is stored', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.walletId).to.exist;",
+              "  pm.collectionVariables.set('receiverWalletId', json.data.walletId);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 2,\n  \"initialBalance\": 1000.00,\n  \"currency\": \"INR\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Transfer Money",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Transfer returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Transfer returns SUCCESS and stores payment reference', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.success).to.eql(true);",
+              "  pm.expect(json.data.status).to.eql('SUCCESS');",
+              "  pm.expect(json.data.paymentReference).to.be.a('string').and.not.empty;",
+              "  pm.collectionVariables.set('paymentReference', json.data.paymentReference);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"senderWalletId\": {{senderWalletId}},\n  \"receiverWalletId\": {{receiverWalletId}},\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+        },
+        "url": {
+          "raw": "{{paymentBaseUrl}}/api/v1/payments/transfer",
+          "host": [
+            "{{paymentBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "transfer"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Retry Same Transfer Idempotency",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Retry returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Retry returns same payment reference', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.status).to.eql('SUCCESS');",
+              "  pm.expect(json.data.paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"senderWalletId\": {{senderWalletId}},\n  \"receiverWalletId\": {{receiverWalletId}},\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"idempotencyKey\": \"{{idempotencyKey}}\"\n}"
+        },
+        "url": {
+          "raw": "{{paymentBaseUrl}}/api/v1/payments/transfer",
+          "host": [
+            "{{paymentBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "transfer"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Payment By Reference",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get payment returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Get payment returns SUCCESS transaction', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.paymentReference).to.eql(pm.collectionVariables.get('paymentReference'));",
+              "  pm.expect(json.data.status).to.eql('SUCCESS');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{paymentBaseUrl}}/api/v1/payments/{{paymentReference}}",
+          "host": [
+            "{{paymentBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "{{paymentReference}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Sender Transactions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Get sender transactions returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Sender transactions include payment reference', function () {",
+              "  const json = pm.response.json();",
+              "  const refs = json.data.map(item => item.paymentReference);",
+              "  pm.expect(refs).to.include(pm.collectionVariables.get('paymentReference'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{paymentBaseUrl}}/api/v1/wallets/{{senderWalletId}}/transactions",
+          "host": [
+            "{{paymentBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{senderWalletId}}",
+            "transactions"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Sender Balance After Transfer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sender balance returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Sender balance is 4500 after idempotent retry', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.balance).to.eql(4500.00);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets/{{senderWalletId}}/balance",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{senderWalletId}}",
+            "balance"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Check Receiver Balance After Transfer",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Receiver balance returns 200 OK', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Receiver balance is 1500 after transfer', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.balance).to.eql(1500.00);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets/{{receiverWalletId}}/balance",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets",
+            "{{receiverWalletId}}",
+            "balance"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Same Wallet Transfer Should Fail",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('sameWalletIdempotencyKey', 'same-wallet-' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Same wallet transfer returns 400', function () {",
+              "  pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Same wallet transfer returns SAME_WALLET_TRANSFER', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.errorCode).to.eql('SAME_WALLET_TRANSFER');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"senderWalletId\": {{senderWalletId}},\n  \"receiverWalletId\": {{senderWalletId}},\n  \"amount\": 100.00,\n  \"currency\": \"INR\",\n  \"idempotencyKey\": \"{{sameWalletIdempotencyKey}}\"\n}"
+        },
+        "url": {
+          "raw": "{{paymentBaseUrl}}/api/v1/payments/transfer",
+          "host": [
+            "{{paymentBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "transfer"
+          ]
+        }
+      }
+    }
+  ]
+}
