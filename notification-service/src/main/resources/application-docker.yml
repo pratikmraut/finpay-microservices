@@ -1,0 +1,31 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/finpay
+    driver-class-name: org.postgresql.Driver
+    username: finpay
+    password: finpay
+  h2:
+    console:
+      enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: finpay-notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.pratik.finpay.common.event,com.pratik.finpay.common.enums
+        spring.json.use.type.headers: true
+        spring.json.value.default.type: com.pratik.finpay.common.event.PaymentEvent
+
+finpay:
+  kafka:
+    payment-events-topic: payment-events

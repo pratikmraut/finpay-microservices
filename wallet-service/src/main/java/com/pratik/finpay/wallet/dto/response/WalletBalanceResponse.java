@@ -3,6 +3,7 @@ package com.pratik.finpay.wallet.dto.response;
 import com.pratik.finpay.common.enums.WalletStatus;
 import com.pratik.finpay.wallet.entity.Wallet;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
 public record WalletBalanceResponse(
@@ -11,7 +12,7 @@ public record WalletBalanceResponse(
         BigDecimal balance,
         String currency,
         WalletStatus status
-) {
+) implements Serializable {
 
     public static WalletBalanceResponse from(Wallet wallet) {
         return new WalletBalanceResponse(

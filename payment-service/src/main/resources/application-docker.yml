@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/finpay
+    driver-class-name: org.postgresql.Driver
+    username: finpay
+    password: finpay
+  data:
+    redis:
+      host: localhost
+      port: 6379
+  h2:
+    console:
+      enabled: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+
+finpay:
+  redis:
+    idempotency-key-prefix: payment:idempotency:
+    idempotency-ttl-hours: 24
+  kafka:
+    payment-events-topic: payment-events

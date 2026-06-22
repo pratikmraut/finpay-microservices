@@ -56,3 +56,21 @@ mvn clean test
 docker compose up -d
 docker ps
 ```
+
+Run the Spring services against Docker infrastructure from separate terminals:
+
+```bash
+mvn -pl auth-service spring-boot:run -Dspring-boot.run.profiles=docker
+mvn -pl wallet-service spring-boot:run -Dspring-boot.run.profiles=docker
+mvn -pl payment-service spring-boot:run -Dspring-boot.run.profiles=docker
+mvn -pl notification-service spring-boot:run -Dspring-boot.run.profiles=docker
+mvn -pl api-gateway spring-boot:run
+```
+
+With the `docker` profile:
+
+- auth, wallet, payment, and notification services use PostgreSQL
+- wallet-service uses Redis-backed wallet metadata caching
+- payment-service uses Redis-backed idempotency keys
+- payment-service publishes payment events to Kafka
+- notification-service consumes payment events from Kafka
