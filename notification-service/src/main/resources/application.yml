@@ -24,6 +24,8 @@ management:
         include: health,info
 
 finpay:
+  wallet-service:
+    base-url: http://localhost:8082
   jwt:
     secret: change-this-secret-to-a-long-strong-value-for-local-dev-only
   internal-service-token: local-internal-token

@@ -28,7 +28,7 @@ spring:
 
 finpay:
   redis:
-    idempotency-key-prefix: payment:idempotency:
+    idempotency-key-prefix: "payment:idempotency:"
     idempotency-ttl-hours: 24
   kafka:
     payment-events-topic: payment-events

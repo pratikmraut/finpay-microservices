@@ -67,6 +67,17 @@ class WalletServiceTest {
     }
 
     @Test
+    void getWalletForUserShouldReturnOwnedWallet() {
+        Wallet wallet = wallet(new BigDecimal("1000.00"), WalletStatus.ACTIVE);
+        when(walletRepository.findByUserId(1L)).thenReturn(Optional.of(wallet));
+
+        WalletResponse response = walletService.getWalletForUser(1L);
+
+        assertEquals(1L, response.userId());
+        assertEquals("WALLET-TEST", response.walletNumber());
+    }
+
+    @Test
     void debitShouldSubtractAmount() {
         Wallet wallet = wallet(new BigDecimal("1000.00"), WalletStatus.ACTIVE);
         when(walletRepository.findById(1L)).thenReturn(Optional.of(wallet));

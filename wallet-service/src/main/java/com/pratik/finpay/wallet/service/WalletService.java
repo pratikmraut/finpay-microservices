@@ -53,6 +53,13 @@ public class WalletService {
     }
 
     @Transactional(readOnly = true)
+    public WalletResponse getWalletForUser(Long userId) {
+        return walletRepository.findByUserId(userId)
+                .map(WalletResponse::from)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet not found for current user"));
+    }
+
+    @Transactional(readOnly = true)
     public WalletBalanceResponse getBalance(Long walletId) {
         return WalletBalanceResponse.from(findWallet(walletId));
     }

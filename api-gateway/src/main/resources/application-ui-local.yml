@@ -1,0 +1,53 @@
+server:
+  port: 8180
+
+spring:
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:5173
+              - http://127.0.0.1:5173
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        - id: auth-service
+          uri: http://localhost:8181
+          predicates:
+            - Path=/api/v1/auth/**
+
+        - id: payment-wallet-transactions
+          uri: http://localhost:8183
+          order: -1
+          predicates:
+            - Path=/api/v1/wallets/*/transactions
+
+        - id: wallet-service
+          uri: http://localhost:8182
+          predicates:
+            - Path=/api/v1/wallets/**
+
+        - id: payment-service
+          uri: http://localhost:8183
+          predicates:
+            - Path=/api/v1/payments/**
+
+        - id: notification-service
+          uri: http://localhost:8184
+          predicates:
+            - Path=/api/v1/notifications/**
+
+        - id: notification-internal-local
+          uri: http://localhost:8184
+          predicates:
+            - Path=/internal/v1/notifications/**

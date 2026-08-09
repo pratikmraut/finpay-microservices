@@ -9,6 +9,9 @@
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
       "version": "latest",
       "enableNonRootDocker": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22"
     }
   },
   "customizations": {
@@ -27,6 +30,7 @@
     8082,
     8083,
     8084,
+    5173,
     5432,
     6379,
     9092
@@ -47,7 +51,11 @@
     },
     "8084": {
       "label": "notification-service"
+    },
+    "5173": {
+      "label": "finpay-web",
+      "onAutoForward": "openBrowser"
     }
   },
-  "postCreateCommand": "java -version && mvn -version && docker --version && docker compose version"
+  "postCreateCommand": "java -version && mvn -version && node --version && docker --version && docker compose version && cd frontend && npm install"
 }

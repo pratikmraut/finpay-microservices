@@ -12,7 +12,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     Optional<Notification> findByEventId(String eventId);
 
-    List<Notification> findByPaymentReferenceOrderByCreatedAtDesc(String paymentReference);
+    List<Notification> findByPaymentReferenceAndWalletIdOrderByCreatedAtDesc(String paymentReference, Long walletId);
 
-    List<Notification> findAllByOrderByCreatedAtDesc();
+    List<Notification> findByWalletIdOrderByCreatedAtDesc(Long walletId);
 }

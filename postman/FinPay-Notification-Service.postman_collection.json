@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FinPay Notification Service",
-    "description": "Postman collection for testing FinPay notification-service Phase 5 APIs without Kafka. Start auth-service on 8081 and notification-service on 8084 before running.",
+    "description": "Postman collection for testing FinPay notification-service Phase 5 APIs without Kafka. Start auth-service on 8081, wallet-service on 8082, and notification-service on 8084 before running.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -14,6 +14,10 @@
       "value": "http://localhost:8084"
     },
     {
+      "key": "walletBaseUrl",
+      "value": "http://localhost:8082"
+    },
+    {
       "key": "userEmail",
       "value": ""
     },
@@ -23,6 +27,14 @@
     },
     {
       "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "walletId",
       "value": ""
     },
     {
@@ -168,6 +180,7 @@
               "  const json = pm.response.json();",
               "  pm.expect(json.data.accessToken).to.be.a('string').and.not.empty;",
               "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+              "  pm.collectionVariables.set('userId', json.data.userId);",
               "});"
             ]
           }
@@ -200,6 +213,56 @@
       }
     },
     {
+      "name": "Create User Wallet",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{accessToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": {{userId}},\n  \"initialBalance\": 5000.00,\n  \"currency\": \"INR\"\n}"
+        },
+        "url": {
+          "raw": "{{walletBaseUrl}}/api/v1/wallets",
+          "host": [
+            "{{walletBaseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "wallets"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Create wallet returns 201 Created', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Wallet id is stored', function () {",
+              "  const json = pm.response.json();",
+              "  pm.expect(json.data.walletId).to.be.a('number');",
+              "  pm.collectionVariables.set('walletId', json.data.walletId);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
       "name": "Simulate Payment Completed Event",
       "request": {
         "method": "POST",
@@ -215,7 +278,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"paymentReference\": \"{{paymentReference}}\",\n  \"senderWalletId\": 1,\n  \"receiverWalletId\": 2,\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"status\": \"SUCCESS\",\n  \"eventType\": \"PAYMENT_COMPLETED\",\n  \"message\": \"Payment completed successfully\",\n  \"createdAt\": \"2026-06-21T00:00:00Z\"\n}"
+          "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"paymentReference\": \"{{paymentReference}}\",\n  \"senderWalletId\": {{walletId}},\n  \"receiverWalletId\": 999999,\n  \"amount\": 500.00,\n  \"currency\": \"INR\",\n  \"status\": \"SUCCESS\",\n  \"eventType\": \"PAYMENT_COMPLETED\",\n  \"message\": \"Payment completed successfully\",\n  \"createdAt\": \"2026-06-21T00:00:00Z\"\n}"
         },
         "url": {
           "raw": "{{notificationBaseUrl}}/internal/v1/notifications/payment-events",

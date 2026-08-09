@@ -4,11 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pratik.finpay.notification.dto.response.NotificationResponse;
 import com.pratik.finpay.notification.entity.NotificationStatus;
 import com.pratik.finpay.notification.exception.GlobalExceptionHandler;
+import com.pratik.finpay.notification.security.AuthenticatedUser;
 import com.pratik.finpay.notification.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -38,7 +40,7 @@ class NotificationControllerTest {
     void getAllNotificationsShouldReturnResults() throws Exception {
         notificationService.responses = List.of(response());
 
-        mockMvc.perform(get("/api/v1/notifications"))
+        mockMvc.perform(get("/api/v1/notifications").principal(authentication()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0].paymentReference").value("PAY-123"));
@@ -48,7 +50,7 @@ class NotificationControllerTest {
     void getNotificationsByPaymentReferenceShouldReturnResults() throws Exception {
         notificationService.responses = List.of(response());
 
-        mockMvc.perform(get("/api/v1/notifications/payment/PAY-123"))
+        mockMvc.perform(get("/api/v1/notifications/payment/PAY-123").principal(authentication()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].paymentReference").value("PAY-123"));
     }
@@ -66,21 +68,28 @@ class NotificationControllerTest {
         );
     }
 
+    private UsernamePasswordAuthenticationToken authentication() {
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("user@example.com", null);
+        authentication.setDetails(new AuthenticatedUser(7L, "user@example.com", "USER"));
+        return authentication;
+    }
+
     private static class FakeNotificationService extends NotificationService {
 
         private List<NotificationResponse> responses = List.of();
 
         FakeNotificationService() {
-            super(null);
+            super(null, null);
         }
 
         @Override
-        public List<NotificationResponse> getAllNotifications() {
+        public List<NotificationResponse> getNotificationsForUser(Long userId) {
             return responses;
         }
 
         @Override
-        public List<NotificationResponse> getByPaymentReference(String paymentReference) {
+        public List<NotificationResponse> getByPaymentReferenceForUser(String paymentReference, Long userId) {
             return responses;
         }
     }

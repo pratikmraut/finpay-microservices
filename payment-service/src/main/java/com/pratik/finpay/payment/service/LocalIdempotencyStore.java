@@ -8,7 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 @Component
-@Profile("!docker")
+@Profile("!docker & !ui-local")
 public class LocalIdempotencyStore implements IdempotencyStore {
 
     private final ConcurrentMap<String, String> paymentReferences = new ConcurrentHashMap<>();

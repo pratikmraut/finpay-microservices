@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: finpay
       POSTGRES_DB: finpay
     ports:
-      - "5432:5432"
+      - "${FINPAY_POSTGRES_PORT:-5432}:5432"
     volumes:
       - finpay-postgres-data:/var/lib/postgresql/data
 
@@ -36,9 +36,16 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 6000
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
 
 volumes:
   finpay-postgres-data:

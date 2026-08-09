@@ -10,12 +10,14 @@ import com.pratik.finpay.wallet.dto.response.WalletResponse;
 import com.pratik.finpay.wallet.exception.BusinessException;
 import com.pratik.finpay.wallet.exception.GlobalExceptionHandler;
 import com.pratik.finpay.wallet.exception.ResourceNotFoundException;
+import com.pratik.finpay.wallet.security.AuthenticatedUser;
 import com.pratik.finpay.wallet.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -72,6 +74,29 @@ class WalletControllerTest {
         mockMvc.perform(get("/api/v1/wallets/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.walletNumber").value("WALLET-TEST"));
+    }
+
+    @Test
+    void getCurrentUserWalletShouldUseAuthenticatedUserId() throws Exception {
+        walletService.walletResponse = walletResponse(WalletStatus.ACTIVE);
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken("user@example.com", null);
+        authentication.setDetails(new AuthenticatedUser(1L, "user@example.com", "USER"));
+
+        mockMvc.perform(get("/api/v1/wallets/me").principal(authentication))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userId").value(1))
+                .andExpect(jsonPath("$.data.walletNumber").value("WALLET-TEST"));
+    }
+
+    @Test
+    void getWalletByUserIdShouldSupportInternalServiceLookup() throws Exception {
+        walletService.walletResponse = walletResponse(WalletStatus.ACTIVE);
+
+        mockMvc.perform(get("/internal/v1/wallets/user/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userId").value(1))
+                .andExpect(jsonPath("$.data.walletId").value(1));
     }
 
     @Test
@@ -175,6 +200,12 @@ class WalletControllerTest {
 
         @Override
         public WalletResponse getWallet(Long walletId) {
+            throwIfNeeded();
+            return walletResponse;
+        }
+
+        @Override
+        public WalletResponse getWalletForUser(Long userId) {
             throwIfNeeded();
             return walletResponse;
         }

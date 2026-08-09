@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
-@Profile("!docker")
+@Profile("!docker & !ui-local")
 public class LoggingPaymentEventPublisher implements PaymentEventPublisher {
 
     private static final Logger log = LoggerFactory.getLogger(LoggingPaymentEventPublisher.class);

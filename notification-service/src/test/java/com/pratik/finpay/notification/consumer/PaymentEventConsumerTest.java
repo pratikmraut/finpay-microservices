@@ -57,7 +57,7 @@ class PaymentEventConsumerTest {
         private PaymentEvent receivedEvent;
 
         FakeNotificationService() {
-            super(null);
+            super(null, null);
         }
 
         @Override

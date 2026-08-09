@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 @Component
-@Profile("docker")
+@Profile({"docker", "ui-local"})
 public class RedisIdempotencyStore implements IdempotencyStore {
 
     private final StringRedisTemplate redisTemplate;

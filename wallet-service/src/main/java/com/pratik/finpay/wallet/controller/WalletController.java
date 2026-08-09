@@ -6,10 +6,12 @@ import com.pratik.finpay.wallet.dto.request.UpdateWalletStatusRequest;
 import com.pratik.finpay.wallet.dto.request.WalletOperationRequest;
 import com.pratik.finpay.wallet.dto.response.WalletBalanceResponse;
 import com.pratik.finpay.wallet.dto.response.WalletResponse;
+import com.pratik.finpay.wallet.security.AuthenticatedUser;
 import com.pratik.finpay.wallet.service.WalletService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -38,6 +40,23 @@ public class WalletController {
     @GetMapping("/api/v1/wallets/{walletId}")
     public ResponseEntity<ApiResponse<WalletResponse>> getWallet(@PathVariable Long walletId) {
         return ResponseEntity.ok(ApiResponse.success("Wallet fetched successfully", walletService.getWallet(walletId)));
+    }
+
+    @GetMapping("/api/v1/wallets/me")
+    public ResponseEntity<ApiResponse<WalletResponse>> getCurrentUserWallet(Authentication authentication) {
+        AuthenticatedUser currentUser = (AuthenticatedUser) authentication.getDetails();
+        return ResponseEntity.ok(ApiResponse.success(
+                "Current user wallet fetched successfully",
+                walletService.getWalletForUser(currentUser.userId())
+        ));
+    }
+
+    @GetMapping("/internal/v1/wallets/user/{userId}")
+    public ResponseEntity<ApiResponse<WalletResponse>> getWalletByUserId(@PathVariable Long userId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                "User wallet fetched successfully",
+                walletService.getWalletForUser(userId)
+        ));
     }
 
     @GetMapping("/api/v1/wallets/{walletId}/balance")
